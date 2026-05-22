@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LoL 15-Min Predictor</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; padding: 30px; margin: 0; }
+        .container { max-width: 1000px; margin: auto; background: #1e293b; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        
+        h2 { text-align: center; color: #38bdf8; margin-bottom: 30px; font-size: 32px; letter-spacing: 1px;}
+        h3 { margin-top: 0; padding-bottom: 12px; border-bottom: 2px solid #334155; text-align: center; font-size: 22px;}
+        
+        .blue-title { color: #60a5fa; border-bottom-color: #3b82f6; }
+        .red-title { color: #f87171; border-bottom-color: #ef4444; }
+
+        .section-header { background: #334155; padding: 12px 20px; border-radius: 8px; color: #f8fafc; margin-top: 40px; margin-bottom: 25px; border-left: 5px solid #38bdf8; font-size: 18px; font-weight: bold;}
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 20px; }
+        .blue-side { background: rgba(59, 130, 246, 0.05); padding: 25px; border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .red-side { background: rgba(239, 68, 68, 0.05); padding: 25px; border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.2); }
+        
+        .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .role-badge { width: 70px; font-weight: bold; color: #cbd5e1; font-size: 13px; text-transform: uppercase; background: #334155; padding: 8px; text-align: center; border-radius: 4px;}
+        
+        input, select { background: #0f172a; color: white; border: 1px solid #475569; border-radius: 6px; box-sizing: border-box; font-size: 15px; padding: 12px; transition: border-color 0.2s;}
+        select { cursor: pointer; }
+        input:focus, select:focus { outline: none; border-color: #38bdf8; }
+        
+        .champ-select { flex: 1; }
+        .lvl-input { width: 80px; text-align: center; }
+        
+        label { font-weight: bold; font-size: 15px; color: #94a3b8; display:block; margin-bottom: 8px;}
+        .macro-input { width: 100%; margin-bottom: 20px; }
+        
+        button { width: 100%; padding: 20px; margin-top: 40px; background: #0284c7; color: white; font-weight:bold; border: none; border-radius: 8px; cursor: pointer; font-size: 20px; transition: 0.2s;}
+        button:hover { background: #0369a1; transform: translateY(-2px); }
+        
+        .result { margin-top: 40px; padding: 30px; background: #0f172a; text-align: center; border-radius: 10px; border: 1px solid #475569;}
+        .win { color: #22c55e; font-size: 38px; margin: 0 0 15px 0; text-transform: uppercase;}
+        .loss { color: #ef4444; font-size: 38px; margin: 0 0 15px 0; text-transform: uppercase;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Esports Match Predictor 🔮</h2>
+        
+        <form method="POST">
+            <div style="background: #334155; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+                <label style="color: white; font-size: 18px; margin-bottom: 15px;">Which side are YOU playing on?</label>
+                <select name="side_encoded" style="width: 300px; font-size: 16px; font-weight: bold; text-align: center;">
+                    <option value="1">Blue Side</option>
+                    <option value="0">Red Side</option>
+                </select>
+            </div>
+
+            <div class="section-header">Step 1: Team Rosters (Champions & Current Levels)</div>
+            <div class="grid-2">
+                <div class="blue-side">
+                    <h3 class="blue-title">Blue Team</h3>
+                    {% set roles = [('top', 'Top'), ('jng', 'Jungle'), ('mid', 'Mid'), ('bot', 'ADC'), ('sup', 'Support')] %}
+                    {% for role_id, role_name in roles %}
+                    <div class="form-row">
+                        <span class="role-badge">{{ role_name }}</span>
+                        <select name="blue_champ_{{role_id}}" class="champ-select" required>
+                            <option value="" disabled selected>Champion...</option>
+                            {% for champ in champs %}
+                            <option value="{{ champ }}">{{ champ }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="blue_lvl_{{role_id}}" class="lvl-input" min="1" max="18" value="10" title="Level" required>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="red-side">
+                    <h3 class="red-title">Red Team</h3>
+                    {% for role_id, role_name in roles %}
+                    <div class="form-row">
+                        <span class="role-badge">{{ role_name }}</span>
+                        <select name="red_champ_{{role_id}}" class="champ-select" required>
+                            <option value="" disabled selected>Champion...</option>
+                            {% for champ in champs %}
+                            <option value="{{ champ }}">{{ champ }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="red_lvl_{{role_id}}" class="lvl-input" min="1" max="18" value="10" title="Level" required>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="section-header">Step 2: 15-Minute Macro State</div>
+            <div class="grid-2">
+                <div>
+                    <label>Team Gold Difference</label>
+                    <input type="number" step="any" name="golddiff" class="macro-input" placeholder="e.g. 1500 (Ahead) or -500 (Behind)" required>
+                </div>
+                <div>
+                    <label>Turret Plate Differential</label>
+                    <input type="number" step="any" name="platediff" class="macro-input" placeholder="e.g. 2 (Ahead) or -1 (Behind)" required>
+                </div>
+            </div>
+            
+            <div style="width: 50%; margin: 0 auto; margin-top: 10px;">
+                <label style="text-align: center;">Overall Team KDA Ratio ((K+A)/D)</label>
+                <input type="number" step="any" name="kda" class="macro-input" placeholder="e.g. 3.5" required>
+            </div>
+
+            <div class="section-header">Step 3: Objectives Control (at 15 min)</div>
+            <div class="grid-2">
+                <div>
+                    <label>First Blood</label>
+                    <select name="firstblood" class="macro-input" required>
+                        <option value="1">Blue Team</option>
+                        <option value="0">Red Team</option>
+                    </select>
+                </div>
+                <div>
+                    <label>First Dragon</label>
+                    <select name="firstdragon" class="macro-input" required>
+                        <option value="1">Blue Team</option>
+                        <option value="0">Red Team</option>
+                    </select>
+                </div>
+                <div>
+                    <label>First Herald</label>
+                    <select name="firstherald" class="macro-input" required>
+                        <option value="1">Blue Team</option>
+                        <option value="0">Red Team</option>
+                    </select>
+                </div>
+                <div>
+                    <label>First Tower</label>
+                    <select name="firsttower" class="macro-input" required>
+                        <option value="1">Blue Team</option>
+                        <option value="0">Red Team</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit">Execute Prediction Protocol</button>
+        </form>
+        
+        {% if prediction %}
+        <div class="result" id="prediction-result">
+            <h3 class="{% if prediction == 'Victory' %}win{% else %}loss{% endif %}">{{ prediction }}</h3>
+            <p style="font-size: 20px; color: #94a3b8; margin: 0;">Algorithm Confidence: <strong style="color: white; font-size: 24px;">{{ probability }}%</strong></p>
+            {% if error %}
+            <p style="color: #ef4444; font-size: 14px; margin-top: 10px;">{{ error }}</p>
+            {% endif %}
+        </div>
+        
+        <script>
+            document.getElementById('prediction-result').scrollIntoView({ behavior: 'smooth', block: 'end' });
+        </script>
+        {% endif %}
+    </div>
+</body>
+</html>
